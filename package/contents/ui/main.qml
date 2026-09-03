@@ -1,9 +1,11 @@
 import QtQuick
 import QtQuick.Layouts
+import QtMultimedia
 import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
+import org.kde.notification 1.0 as KDE
 
 PlasmoidItem {
     id: root
@@ -63,7 +65,7 @@ PlasmoidItem {
         if (m > 0)
             return secondsSetting ? twoDigits(m)+":"+twoDigits(s) : m + " min"
         if (s > 0)
-            return twoDigits(s)+" sec"
+            return s +" sec"
     }
     function formatDuration() {
         var h=Number(plasmoid.configuration.durationHours), m=Number(plasmoid.configuration.durationMinutes), s=Number(plasmoid.configuration.durationSeconds), r=""
@@ -96,10 +98,24 @@ PlasmoidItem {
         return true
     }
     function stopTimer() { targetTimestamp=0; remainingSeconds=0; finished=false; hasTimer=false; clearStoredActiveTimer() }
+    function notifyTimerFinished() {
+        if (!asBool(plasmoid.configuration.notificationsEnabled)) return
+        finishNotification.title = i18n("Kountdown")
+        var details = plasmoid.configuration.mode === "datetime"
+            ? i18n("Target: %1", plasmoid.configuration.targetDateTime)
+            : i18n("Duration: %1", formatDuration())
+        finishNotification.text = i18n("Countdown finished: %1 \n%2", displayTimerName(), details)
+        finishNotification.sendEvent()
+        if (asBool(plasmoid.configuration.soundEnabled)) {
+            finishSound.stop()
+            finishSound.source = String(plasmoid.configuration.notificationSound || "")
+            finishSound.play()
+        }
+    }
     function updateCountdown() {
         if(!hasTimer||targetTimestamp<=0)return
         remainingSeconds=Math.max(0,Math.ceil((targetTimestamp-Date.now())/1000))
-        if(remainingSeconds<=0&&!finished){ finished=true; clearStoredActiveTimer() }
+        if(remainingSeconds<=0&&!finished){ finished=true; clearStoredActiveTimer(); notifyTimerFinished() }
     }
     function resetAndRestartTimerForConfigChange() {
         if (!(hasTimer || asBool(plasmoid.configuration.activeTimerRunning) || pendingConfigRestart)) return
@@ -122,6 +138,18 @@ PlasmoidItem {
     }
 
     Timer { interval: 250; repeat: true; running: true; onTriggered: root.updateCountdown() }
+    MediaPlayer {
+        id: finishSound
+        audioOutput: AudioOutput {
+            volume: 1.0
+        }
+    }
+    KDE.Notification {
+        id: finishNotification
+        componentName: "plasma_workspace"
+        eventId: "notification"
+        iconName: "chronometer"
+    }
     Connections {
         target: plasmoid.configuration
         function onModeChanged() { root.resetAndRestartTimerForConfigChange() }

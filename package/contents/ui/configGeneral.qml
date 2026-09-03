@@ -54,6 +54,12 @@ KCM.SimpleKCM {
         targetDateTime.text = formatDateTime(new Date())
         syncControlsFromTarget()
     }
+    function adjustTarget(seconds) {
+        var date = parseDateTime(targetDateTime.text)
+        date.setTime(date.getTime() + seconds * 1000)
+        targetDateTime.text = formatDateTime(date)
+        syncControlsFromTarget()
+    }
     function ensureTargetDateTimeValue() {
         var parsed = parseDateTime(targetDateTime.text)
         if (!targetDateTime.text || targetDateTime.text.trim() === "" || parsed.getTime() <= 0) {
@@ -93,77 +99,105 @@ KCM.SimpleKCM {
             placeholderText: i18n("My timer")
         }
 
-        Item {
+        Kirigami.Separator {
+            Layout.fillWidth: true
+            Layout.topMargin: -Kirigami.Units.smallSpacing
+            Layout.bottomMargin: Kirigami.Units.smallSpacing
+        }
+
+        QQC2.TextField {
+            id: targetDateTime
             visible: root.cfg_mode === "datetime"
             Kirigami.FormData.label: i18n("Target:")
-            implicitWidth: targetControls.implicitWidth
-            implicitHeight: targetControls.implicitHeight
+            readOnly: true
+            placeholderText: "2026-12-31 23:59:00"
             onVisibleChanged: {
                 if (visible) {
                     root.ensureTargetDateTimeValue()
                     root.syncControlsFromTarget()
                 }
             }
+        }
 
-            ColumnLayout {
-                id: targetControls
-                anchors.fill: parent
-                spacing: Kirigami.Units.smallSpacing
+        RowLayout {
+            visible: root.cfg_mode === "datetime"
+            Kirigami.FormData.label: i18n("Date:")
+            QQC2.SpinBox {
+                id: yearSpin
+                Accessible.name: i18n("Year")
+                from: 1970
+                to: 9999
+                onValueChanged: root.syncTargetFromControls()
+            }
+            QQC2.SpinBox {
+                id: monthSpin
+                Accessible.name: i18n("Month")
+                from: 1
+                to: 12
+                onValueChanged: root.syncTargetFromControls()
+            }
+            QQC2.SpinBox {
+                id: daySpin
+                Accessible.name: i18n("Day")
+                from: 1
+                to: 31
+                onValueChanged: root.syncTargetFromControls()
+            }
+        }
 
-                QQC2.TextField {
-                    id: targetDateTime
-                    Layout.fillWidth: true
-                    readOnly: true
-                    placeholderText: "2026-12-31 23:59:00"
-                }
+        RowLayout {
+            visible: root.cfg_mode === "datetime"
+            Kirigami.FormData.label: i18n("Time:")
+            QQC2.SpinBox {
+                id: hourSpin
+                Accessible.name: i18n("Hour")
+                from: 0
+                to: 23
+                onValueChanged: root.syncTargetFromControls()
+            }
+            QQC2.SpinBox {
+                id: minuteSpin
+                Accessible.name: i18n("Minute")
+                from: 0
+                to: 59
+                onValueChanged: root.syncTargetFromControls()
+            }
+            QQC2.SpinBox {
+                id: secondSpin
+                Accessible.name: i18n("Second")
+                from: 0
+                to: 59
+                onValueChanged: root.syncTargetFromControls()
+            }
+        }
 
-                RowLayout {
-                    QQC2.Button {
-                        text: i18n("Now")
-                        onClicked: root.setTargetNow()
-                    }
-                    QQC2.Label { text: i18n("Date:") }
-                    QQC2.SpinBox {
-                        id: yearSpin
-                        from: 1970
-                        to: 9999
-                        onValueChanged: root.syncTargetFromControls()
-                    }
-                    QQC2.SpinBox {
-                        id: monthSpin
-                        from: 1
-                        to: 12
-                        onValueChanged: root.syncTargetFromControls()
-                    }
-                    QQC2.SpinBox {
-                        id: daySpin
-                        from: 1
-                        to: 31
-                        onValueChanged: root.syncTargetFromControls()
-                    }
-                }
+        RowLayout {
+            visible: root.cfg_mode === "datetime"
+            Kirigami.FormData.label: i18n("Quick adjust:")
+            QQC2.Button {
+                text: i18n("Now")
+                onClicked: root.setTargetNow()
+            }
+        }
 
-                RowLayout {
-                    QQC2.Label { text: i18n("Time:") }
-                    QQC2.SpinBox {
-                        id: hourSpin
-                        from: 0
-                        to: 23
-                        onValueChanged: root.syncTargetFromControls()
-                    }
-                    QQC2.SpinBox {
-                        id: minuteSpin
-                        from: 0
-                        to: 59
-                        onValueChanged: root.syncTargetFromControls()
-                    }
-                    QQC2.SpinBox {
-                        id: secondSpin
-                        from: 0
-                        to: 59
-                        onValueChanged: root.syncTargetFromControls()
-                    }
-                }
+        RowLayout {
+            visible: root.cfg_mode === "datetime"
+            Kirigami.FormData.label: i18n("Adjust:")
+            QQC2.Button {
+                text: i18n("-1 hour")
+                onClicked: root.adjustTarget(-3600)
+            }
+            QQC2.Button {
+                text: i18n("+1 hour")
+                onClicked: root.adjustTarget(3600)
+            }
+            QQC2.Button {
+                text: i18n("-1 min")
+                onClicked: root.adjustTarget(-60)
+            }
+            QQC2.Button {
+                text: i18n("+1 min")
+                onClicked: root.adjustTarget(60)
             }
         }
 
