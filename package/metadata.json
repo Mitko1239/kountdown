@@ -1,0 +1,18 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "dimitar@example.com",
+                "Name": "Dimitar"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "A countdown timer for a date, time, or duration",
+        "Icon": "chronometer",
+        "Id": "com.mitko1239.kountdown",
+        "Name": "Kountdown",
+        "Version": "1.2"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "KPackageStructure": "Plasma/Applet"
+}
