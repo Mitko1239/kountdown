@@ -20,15 +20,28 @@ PlasmoidItem {
     property bool finished: false
     property bool hasTimer: false
     property bool pendingConfigRestart: false
+    readonly property string generatedTimerName: randomDefaultTimerName()
     readonly property bool isPanel: plasmoid.formFactor === PlasmaCore.Types.Horizontal || plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property bool isVerticalPanel: plasmoid.formFactor === PlasmaCore.Types.Vertical
 
     preferredRepresentation: isPanel ? compactRepresentation : fullRepresentation
 
     function twoDigits(value) { return value < 10 ? "0" + value : String(value) }
+    function randomDefaultTimerName() {
+        var names = [
+            // i18n("Mission Countdown"),
+            // i18n("Focus Sprint"),
+            // i18n("Launch Sequence"),
+            // i18n("Time Capsule"),
+            // i18n("Tea Break"),
+            // i18n("Big Moment")
+            i18n("Timer")
+        ]
+        return names[Math.floor(Math.random() * names.length)]
+    }
     function displayTimerName() {
         var name = String(plasmoid.configuration.timerName || "").trim()
-        return name !== "" ? name : i18n("Kountdown")
+        return name !== "" ? name : generatedTimerName
     }
     function durationInSeconds() { return Number(plasmoid.configuration.durationHours) * 3600 + Number(plasmoid.configuration.durationMinutes) * 60 + Number(plasmoid.configuration.durationSeconds) }
     function parseTargetDateTime(value) {
