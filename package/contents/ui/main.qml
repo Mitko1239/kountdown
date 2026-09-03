@@ -5,6 +5,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
+import org.kde.kquickcontrolsaddons 2.0
 import org.kde.notification 1.0 as KDE
 
 PlasmoidItem {
@@ -23,6 +24,7 @@ PlasmoidItem {
     readonly property string generatedTimerName: randomDefaultTimerName()
     readonly property bool isPanel: plasmoid.formFactor === PlasmaCore.Types.Horizontal || plasmoid.formFactor === PlasmaCore.Types.Vertical
     readonly property bool isVerticalPanel: plasmoid.formFactor === PlasmaCore.Types.Vertical
+    Plasmoid.contextualActions: [startAction, stopAction, restartAction, copyTimeAction]
 
     preferredRepresentation: isPanel ? compactRepresentation : fullRepresentation
 
@@ -111,6 +113,9 @@ PlasmoidItem {
         return true
     }
     function stopTimer() { targetTimestamp=0; remainingSeconds=0; finished=false; hasTimer=false; clearStoredActiveTimer() }
+    function copyRemainingTime() {
+        clipboard.content = formatRemaining(remainingSeconds)
+    }
     function notifyTimerFinished() {
         if (!asBool(plasmoid.configuration.notificationsEnabled)) return
         finishNotification.title = i18n("Kountdown")
@@ -151,6 +156,38 @@ PlasmoidItem {
     }
 
     Timer { interval: 250; repeat: true; running: true; onTriggered: root.updateCountdown() }
+    Clipboard { id: clipboard }
+    PlasmaCore.Action {
+        id: startAction
+        text: root.finished && plasmoid.configuration.mode !== "datetime" ? i18n("Restart") : i18n("Start")
+        icon.name: "media-playback-start"
+        enabled: (!root.hasTimer || root.finished) && plasmoid.configuration.mode !== "datetime"
+        onTriggered: root.startTimer()
+    }
+    PlasmaCore.Action {
+        id: stopAction
+        text: i18n("Stop")
+        icon.name: "media-playback-stop"
+        enabled: root.hasTimer && !root.finished
+        onTriggered: root.stopTimer()
+    }
+    PlasmaCore.Action {
+        id: restartAction
+        text: i18n("Restart")
+        icon.name: "view-refresh"
+        enabled: (root.hasTimer || root.finished) && plasmoid.configuration.mode !== "datetime"
+        onTriggered: {
+            root.stopTimer()
+            root.startTimer()
+        }
+    }
+    PlasmaCore.Action {
+        id: copyTimeAction
+        text: i18n("Copy remaining time")
+        icon.name: "edit-copy"
+        enabled: root.hasTimer
+        onTriggered: root.copyRemainingTime()
+    }
     MediaPlayer {
         id: finishSound
         audioOutput: AudioOutput {
@@ -247,10 +284,19 @@ PlasmoidItem {
                 PlasmaComponents.Label { Layout.fillWidth:true; text:root.displayTimerName(); horizontalAlignment:Text.AlignHCenter; elide:Text.ElideRight }
                 PlasmaComponents.Label { Layout.fillWidth:true; Layout.fillHeight:true; text:root.formatRemaining(root.remainingSeconds); horizontalAlignment:Text.AlignHCenter; verticalAlignment:Text.AlignVCenter; font.bold:true; font.pixelSize:Math.max(Kirigami.Units.gridUnit*1.5,Math.min(Kirigami.Units.gridUnit*2,fullView.width/(Math.max(8,root.formatRemaining(root.remainingSeconds).length)*0.5))) }
                 PlasmaComponents.Label { Layout.fillWidth:true; text:root.hasTimer?(plasmoid.configuration.mode==="datetime"?i18n("Target: %1",plasmoid.configuration.targetDateTime):i18n("Duration: %1",root.formatDuration())):i18n("No active countdown"); horizontalAlignment:Text.AlignHCenter; opacity:.7; elide:Text.ElideRight }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Kirigami.Units.largeSpacing
+                }
                 RowLayout {
-                    Layout.alignment:Qt.AlignHCenter
+                    Layout.alignment: Qt.AlignHCenter
                     PlasmaComponents.Button { text:i18n("Start"); icon.name:"media-playback-start"; enabled:!root.hasTimer||root.finished; onClicked:root.startTimer() }
                     PlasmaComponents.Button { text:i18n("Stop"); icon.name:"media-playback-stop"; enabled:root.hasTimer&&!root.finished; onClicked:root.stopTimer() }
+                    PlasmaComponents.Button { text:i18n("Restart"); icon.name:"view-refresh"; enabled:restartAction.enabled; onClicked: { root.stopTimer(); root.startTimer() } }
+                }
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    PlasmaComponents.Button { text:i18n("Copy remaining"); icon.name:"edit-copy"; enabled:copyTimeAction.enabled; onClicked:root.copyRemainingTime() }
                     PlasmaComponents.Button {
                         text: i18n("Settings")
                         icon.name: "configure"
