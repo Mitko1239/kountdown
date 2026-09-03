@@ -3,6 +3,8 @@
 Kountdown is a KDE Plasma 6 countdown widget for tracking a duration or a
 specific date and time.
 
+![Kountdown preview](.github/kountdown_preview.png)
+
 ## Features
 
 - Duration or date/time countdowns
