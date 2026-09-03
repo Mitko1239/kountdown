@@ -44,14 +44,26 @@ PlasmoidItem {
     }
     function formatCompactRemaining(seconds) {
         if (!hasTimer) return i18n("No Timer"); if (seconds<=0) return i18n("Done")
+        var secondsSetting = plasmoid.configuration.showSeconds
         var days=Math.floor(seconds/86400)
         var h=Math.floor((seconds%86400)/3600), m=Math.floor((seconds%3600)/60), s=seconds%60
-        if (days>0) return plasmoid.configuration.showSeconds ? days+"d "+twoDigits(h)+":"+twoDigits(m)+":"+twoDigits(s) : days+"d "+twoDigits(h)+":"+twoDigits(m)
+
+        if (days > 0) {
+            if (h > 0)
+                return secondsSetting ? days+"d, "+twoDigits(h)+":"+twoDigits(m)+":"+twoDigits(s) : days+"d, "+twoDigits(h)+":"+twoDigits(m)
+            if (m > 0)
+                return secondsSetting ? days+"d, "+twoDigits(m)+":"+twoDigits(s) : days+"d, "+m + " min"
+            return days+"d, "+s + " sec"
+        }
         h=Math.floor(seconds/3600)
         m=Math.floor((seconds%3600)/60)
         s=seconds%60
-        if (h>0) return plasmoid.configuration.showSeconds ? twoDigits(h)+":"+twoDigits(m)+":"+twoDigits(s) : twoDigits(h)+":"+twoDigits(m)
-        return plasmoid.configuration.showSeconds ? twoDigits(m)+":"+twoDigits(s) : twoDigits(m)+"m"
+        if (h > 0)
+            return secondsSetting ? twoDigits(h)+":"+twoDigits(m)+":"+twoDigits(s) : twoDigits(h)+":"+twoDigits(m)
+        if (m > 0)
+            return secondsSetting ? twoDigits(m)+":"+twoDigits(s) : m + " min"
+        if (s > 0)
+            return twoDigits(s)+" sec"
     }
     function formatDuration() {
         var h=Number(plasmoid.configuration.durationHours), m=Number(plasmoid.configuration.durationMinutes), s=Number(plasmoid.configuration.durationSeconds), r=""
@@ -122,9 +134,24 @@ PlasmoidItem {
     compactRepresentation: Component {
         Item {
             id: compactArea
-            readonly property real compactContentWidth: Math.max(compactTitleLabel.implicitWidth, compactTimerLabel.implicitWidth)
-            implicitWidth: Math.max(root.isVerticalPanel ? Kirigami.Units.gridUnit * 4 : Kirigami.Units.gridUnit * 12, compactContentWidth + Kirigami.Units.largeSpacing * 2)
+            readonly property real compactMaxWidth: Kirigami.Units.gridUnit * 10
+            readonly property real compactPadding: Kirigami.Units.largeSpacing * 2 + Kirigami.Units.smallSpacing * 2
+            readonly property real compactContentWidth: Math.max(compactTitleMetrics.advanceWidth, compactTimerMetrics.advanceWidth)
+            implicitWidth: Math.min(compactMaxWidth, compactContentWidth + compactPadding)
             implicitHeight: Math.max(Kirigami.Units.gridUnit * 3, compactLayout.implicitHeight + Kirigami.Units.smallSpacing * 2)
+            Layout.minimumWidth: implicitWidth
+            Layout.preferredWidth: implicitWidth
+
+            TextMetrics {
+                id: compactTitleMetrics
+                font: compactTitleLabel.font
+                text: compactTitleLabel.text
+            }
+            TextMetrics {
+                id: compactTimerMetrics
+                font: compactTimerLabel.font
+                text: compactTimerLabel.text
+            }
 
             MouseArea {
                 id: compactMouseArea
@@ -166,16 +193,18 @@ PlasmoidItem {
     fullRepresentation: Component {
         Item {
             id: fullView
-            implicitWidth: Kirigami.Units.gridUnit * 22
+            readonly property real fullMaxWidth: Kirigami.Units.gridUnit * 50
+            implicitWidth: Math.min(fullMaxWidth, fullContent.implicitWidth + Kirigami.Units.largeSpacing * 2)
             implicitHeight: Kirigami.Units.gridUnit * 12
-            Layout.minimumWidth: Kirigami.Units.gridUnit*18
+            Layout.minimumWidth: Kirigami.Units.gridUnit*20
             Layout.minimumHeight: Kirigami.Units.gridUnit*10
-            Layout.preferredWidth: Kirigami.Units.gridUnit*22
+            Layout.preferredWidth: implicitWidth
             Layout.preferredHeight: Kirigami.Units.gridUnit*12
             ColumnLayout {
+                id: fullContent
                 anchors.fill: parent; anchors.margins: Kirigami.Units.largeSpacing
-                PlasmaComponents.Label { Layout.fillWidth:true; text:root.displayTimerName(); horizontalAlignment:Text.AlignHCenter }
-                PlasmaComponents.Label { Layout.fillWidth:true; Layout.fillHeight:true; text:root.formatRemaining(root.remainingSeconds); horizontalAlignment:Text.AlignHCenter; verticalAlignment:Text.AlignVCenter; font.bold:true; font.pixelSize:Math.max(Kirigami.Units.gridUnit*2,Math.min(fullView.width/5,fullView.height/2)) }
+                PlasmaComponents.Label { Layout.fillWidth:true; text:root.displayTimerName(); horizontalAlignment:Text.AlignHCenter; elide:Text.ElideRight }
+                PlasmaComponents.Label { Layout.fillWidth:true; Layout.fillHeight:true; text:root.formatRemaining(root.remainingSeconds); horizontalAlignment:Text.AlignHCenter; verticalAlignment:Text.AlignVCenter; font.bold:true; font.pixelSize:Math.max(Kirigami.Units.gridUnit*1.5,Math.min(Kirigami.Units.gridUnit*2,fullView.width/(Math.max(8,root.formatRemaining(root.remainingSeconds).length)*0.5))) }
                 PlasmaComponents.Label { Layout.fillWidth:true; text:root.hasTimer?(plasmoid.configuration.mode==="datetime"?i18n("Target: %1",plasmoid.configuration.targetDateTime):i18n("Duration: %1",root.formatDuration())):i18n("No active countdown"); horizontalAlignment:Text.AlignHCenter; opacity:.7; elide:Text.ElideRight }
                 RowLayout {
                     Layout.alignment:Qt.AlignHCenter
